@@ -120,6 +120,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          npm publish --workspace @firemix/core --access public
           npm publish --workspace @firemix/client --access public
           npm publish --workspace @firemix/admin --access public
           npm publish --workspace @firemix/mixed --access public
