@@ -51,7 +51,7 @@ jobs:
           const bump = process.env.RELEASE_TYPE || 'patch';
           const valid = new Set(['patch', 'minor', 'major']);
           if (!valid.has(bump)) {
-            throw new Error(\`Unsupported release type: \${bump}\`);
+            throw new Error(`Unsupported release type: ${bump}`);
           }
 
           let latestTag = '';
@@ -87,7 +87,7 @@ jobs:
               patch += 1;
           }
 
-          const next = \`\${major}.\${minor}.\${patch}\`;
+          const next = `${major}.${minor}.${patch}`;
           console.log(next);
           NODE
           )
