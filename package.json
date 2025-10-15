@@ -1,18 +1,25 @@
 {
-  "name": "shared",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "firemix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for Firemix Firebase strategy packages.",
+  "license": "ISC",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "test:unit": "jest src/*",
-    "type-check": "tsc --noEmit",
+    "build": "tsc -b .",
+    "type-check": "tsc -p tsconfig.typecheck.json",
+    "clean": "tsc -b . --clean",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "@types/node": "^22.10.1",
     "@typescript-eslint/eslint-plugin": "^5.59.6",
     "@typescript-eslint/parser": "^5.59.6",
     "eslint": "^8.41.0",
@@ -26,10 +33,5 @@
     "prettier": "2.8.8",
     "ts-jest": "^29.1.2",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "firebase": "^11.1.0",
-    "firebase-admin": "^13.0.2",
-    "rxjs": "^7.8.1"
   }
 }

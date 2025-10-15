@@ -31,29 +31,29 @@ import {
 } from "firebase/firestore";
 import { Observable } from "rxjs";
 import {
-  b2f,
-  Blaze,
-  BlazeArrayRemove,
-  BlazeArrayUnion,
-  BlazeBatch,
-  type BlazeCount,
-  BlazeDeleteField,
-  BlazeGeoPoint,
-  BlazeIncrement,
-  type BlazePartialWithFieldValue,
-  type BlazePath,
-  type BlazeQuery,
-  type BlazeResult,
-  BlazeServerTimestamp,
-  BlazeTimestamp,
-  BlazeTransaction,
-  type BlazeWithFieldValue,
+  firemixToFirestore,
+  Firemix,
+  FiremixArrayRemove,
+  FiremixArrayUnion,
+  FiremixBatch,
+  type FiremixCount,
+  FiremixDeleteField,
+  FiremixGeoPoint,
+  FiremixIncrement,
+  type FiremixPartialWithFieldValue,
+  type FiremixPath,
+  type FiremixQuery,
+  type FiremixResult,
+  FiremixServerTimestamp,
+  FiremixTimestamp,
+  FiremixTransaction,
+  type FiremixWithFieldValue,
   type DocumentData,
+  type Nullable,
   getPath,
-  mapBlazeQuery,
+  mapFiremixQuery,
   recursiveConvert,
-} from "./base";
-import type { Nullable } from "./utils";
+} from "@firemix/core";
 
 const clientSnapshotSettings: ClientSnapshotOptions = {
   serverTimestamps: "estimate",
@@ -62,22 +62,22 @@ const clientSnapshotSettings: ClientSnapshotOptions = {
 const buildResult = <T extends DocumentData>(
   id: string,
   data: ClientDocumentData
-): BlazeResult<T> => {
+): FiremixResult<T> => {
   return {
     id,
-    data: clientF2B(data),
+    data: clientFirestoreToFiremix(data),
   };
 };
 
-class BlazeClientTransaction extends BlazeTransaction {
+class FiremixClientTransaction extends FiremixTransaction {
   private tx: ClientTransaction;
   constructor(tx: ClientTransaction) {
     super();
     this.tx = tx;
   }
   public async get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>> {
     const ref = await this.tx.get(getClientReference(path));
     return ref.exists()
       ? buildResult(ref.id, ref.data(clientSnapshotSettings))
@@ -85,45 +85,45 @@ class BlazeClientTransaction extends BlazeTransaction {
   }
 
   public set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void {
-    this.tx.set(getClientReference(path), b2f(data));
+    this.tx.set(getClientReference(path), firemixToFirestore(data));
   }
 
-  public async query<T extends DocumentData>(): Promise<BlazeResult<T>[]> {
+  public async query<T extends DocumentData>(): Promise<FiremixResult<T>[]> {
     throw new Error("Method not implemented.");
   }
 
   public merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    this.tx.set(getClientReference(path), b2f(data), {
+    this.tx.set(getClientReference(path), firemixToFirestore(data), {
       merge: true,
     });
   }
 
   public update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    this.tx.update(getClientReference<T>(path), b2f(data));
+    this.tx.update(getClientReference<T>(path), firemixToFirestore(data));
   }
 
-  public delete<T = never>(path: BlazePath<T>): void {
+  public delete<T = never>(path: FiremixPath<T>): void {
     this.tx.delete(getClientReference(path));
   }
 }
 
-const getClientReference = <T>(path: BlazePath<T>) => {
+const getClientReference = <T>(path: FiremixPath<T>) => {
   return clientDoc(
     getClientFirestore(),
     getPath(path)
   ) as ClientDocumentReference<T>;
 };
 
-class ClientBatch extends BlazeBatch {
+class ClientBatch extends FiremixBatch {
   private batch: ClientWriteBatch;
   constructor(batch: ClientWriteBatch) {
     super();
@@ -131,27 +131,27 @@ class ClientBatch extends BlazeBatch {
   }
 
   set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void {
-    this.batch.set(getClientReference<T>(path), b2f(data));
+    this.batch.set(getClientReference<T>(path), firemixToFirestore(data));
   }
 
   merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    clientSetDoc(getClientReference<T>(path), b2f(data));
+    clientSetDoc(getClientReference<T>(path), firemixToFirestore(data));
   }
 
   update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    this.batch.update(getClientReference<T>(path), b2f(data));
+    this.batch.update(getClientReference<T>(path), firemixToFirestore(data));
   }
 
-  delete<T = never>(path: BlazePath<T>): void {
+  delete<T = never>(path: FiremixPath<T>): void {
     this.batch.delete(getClientReference(path));
   }
 
@@ -160,15 +160,15 @@ class ClientBatch extends BlazeBatch {
   }
 }
 
-export class ClientBlaze extends Blaze {
-  getMany<T extends DocumentData>(): Promise<Nullable<BlazeResult<T>>[]> {
+export class FiremixClient extends Firemix {
+  getMany<T extends DocumentData>(): Promise<Nullable<FiremixResult<T>>[]> {
     throw new Error("Method not implemented.");
   }
 
   watch<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Observable<Nullable<BlazeResult<T>>> {
-    return new Observable<Nullable<BlazeResult<T>>>((subscriber) => {
+    path: FiremixPath<T>
+  ): Observable<Nullable<FiremixResult<T>>> {
+    return new Observable<Nullable<FiremixResult<T>>>((subscriber) => {
       const doc = getClientReference<T>(path);
       const unsubscribe = onClientSnapshot(
         doc,
@@ -190,10 +190,10 @@ export class ClientBlaze extends Blaze {
   }
 
   watchQuery<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Observable<BlazeResult<T>[]> {
-    return new Observable<BlazeResult<T>[]>((subscriber) => {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Observable<FiremixResult<T>[]> {
+    return new Observable<FiremixResult<T>[]>((subscriber) => {
       const q = this.buildQuery(path, ...query);
       const unsubscribe = onClientSnapshot(q, (snapshots) => {
         subscriber.next(
@@ -206,44 +206,44 @@ export class ClientBlaze extends Blaze {
     });
   }
 
-  timestamp(seconds: number, nanoseconds: number): BlazeTimestamp {
-    return new BlazeClientTimestamp(new ClientTimestamp(seconds, nanoseconds));
+  timestamp(seconds: number, nanoseconds: number): FiremixTimestamp {
+    return new FiremixClientTimestamp(new ClientTimestamp(seconds, nanoseconds));
   }
 
-  geoPoint(latitude: number, longitude: number): BlazeGeoPoint {
-    return new BlazeClientGeoPoint(new ClientGeoPoint(latitude, longitude));
+  geoPoint(latitude: number, longitude: number): FiremixGeoPoint {
+    return new FiremixClientGeoPoint(new ClientGeoPoint(latitude, longitude));
   }
 
-  arrayUnion(...values: unknown[]): BlazeArrayUnion {
-    return new BlazeClientArrayUnion(values);
+  arrayUnion(...values: unknown[]): FiremixArrayUnion {
+    return new FiremixClientArrayUnion(values);
   }
 
-  increment(value: number): BlazeIncrement {
-    return new BlazeClientIncrement(value);
+  increment(value: number): FiremixIncrement {
+    return new FiremixClientIncrement(value);
   }
 
-  arrayRemove(...values: unknown[]): BlazeArrayRemove {
-    return new BlazeClientArrayRemove(values);
+  arrayRemove(...values: unknown[]): FiremixArrayRemove {
+    return new FiremixClientArrayRemove(values);
   }
 
-  now(): BlazeTimestamp {
-    return new BlazeClientTimestamp(ClientTimestamp.now());
+  now(): FiremixTimestamp {
+    return new FiremixClientTimestamp(ClientTimestamp.now());
   }
 
-  timestampFromDate(date: Date): BlazeTimestamp {
-    return new BlazeClientTimestamp(ClientTimestamp.fromDate(date));
+  timestampFromDate(date: Date): FiremixTimestamp {
+    return new FiremixClientTimestamp(ClientTimestamp.fromDate(date));
   }
 
-  timestampFromMillis(millis: number): BlazeTimestamp {
-    return new BlazeClientTimestamp(ClientTimestamp.fromMillis(millis));
+  timestampFromMillis(millis: number): FiremixTimestamp {
+    return new FiremixClientTimestamp(ClientTimestamp.fromMillis(millis));
   }
 
-  serverTimestamp(): BlazeServerTimestamp {
-    return new BlazeClientServerTimestamp();
+  serverTimestamp(): FiremixServerTimestamp {
+    return new FiremixClientServerTimestamp();
   }
 
-  deleteField(): BlazeDeleteField {
-    return new BlazeClientDeleteField();
+  deleteField(): FiremixDeleteField {
+    return new FiremixClientDeleteField();
   }
 
   id(): string {
@@ -252,37 +252,37 @@ export class ClientBlaze extends Blaze {
   }
 
   async merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void> {
-    await clientSetDoc(getClientReference<T>(path), b2f(data));
+    await clientSetDoc(getClientReference<T>(path), firemixToFirestore(data));
   }
 
   async update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void> {
-    return clientUpdateDoc(getClientReference<T>(path), b2f(data));
+    return clientUpdateDoc(getClientReference<T>(path), firemixToFirestore(data));
   }
 
-  async delete<T = never>(path: BlazePath<T>): Promise<void> {
+  async delete<T = never>(path: FiremixPath<T>): Promise<void> {
     await clientDeleteDoc(getClientReference(path));
   }
 
   async count<T = never>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeCount> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixCount> {
     const q = this.buildQuery(path, ...query);
     const c = await clientGetCountFromServer(q);
     return { total: c.data().count };
   }
 
-  private buildQuery<T>(path: BlazePath<T>, ...query: BlazeQuery[]) {
+  private buildQuery<T>(path: FiremixPath<T>, ...query: FiremixQuery[]) {
     const convertedQuery = query.map((v) => {
-      return mapBlazeQuery(v, {
+      return mapFiremixQuery(v, {
         onConstraint: ([field, op, value]) =>
-          clientWhere(field, op, b2f(value)),
+          clientWhere(field, op, firemixToFirestore(value)),
         onOrdering: ([field, direction]) => clientOrderBy(field, direction),
         onLimit: ([, limit]) => clientLimit(limit),
       });
@@ -293,9 +293,9 @@ export class ClientBlaze extends Blaze {
   }
 
   async query<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeResult<T>[]> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixResult<T>[]> {
     const q = this.buildQuery(path, ...query);
     const snaps = await clientGetDocs(q);
     return snaps.docs.map((snap) =>
@@ -304,27 +304,27 @@ export class ClientBlaze extends Blaze {
   }
 
   async transaction<R = void>(
-    fn: (tx: BlazeTransaction) => Promise<R>
+    fn: (tx: FiremixTransaction) => Promise<R>
   ): Promise<R> {
     return runClientTransaction(getClientFirestore(), async (tx) => {
-      return fn(new BlazeClientTransaction(tx));
+      return fn(new FiremixClientTransaction(tx));
     });
   }
 
-  batch(): BlazeBatch {
+  batch(): FiremixBatch {
     return new ClientBatch(clientWriteBatch(getClientFirestore()));
   }
 
   async set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): Promise<void> {
-    await clientSetDoc(getClientReference<T>(path), b2f(data));
+    await clientSetDoc(getClientReference<T>(path), firemixToFirestore(data));
   }
 
   async get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>> {
     const res = await clientGetDoc(getClientReference<T>(path));
     if (!res.exists()) {
       return null;
@@ -334,7 +334,7 @@ export class ClientBlaze extends Blaze {
   }
 }
 
-class BlazeClientTimestamp extends BlazeTimestamp {
+class FiremixClientTimestamp extends FiremixTimestamp {
   constructor(timestamp: ClientTimestamp) {
     super(timestamp.seconds, timestamp.nanoseconds);
   }
@@ -360,7 +360,7 @@ class BlazeClientTimestamp extends BlazeTimestamp {
   }
 }
 
-class BlazeClientGeoPoint extends BlazeGeoPoint {
+class FiremixClientGeoPoint extends FiremixGeoPoint {
   constructor(geoPoint: ClientGeoPoint) {
     super(geoPoint.latitude, geoPoint.longitude);
   }
@@ -374,42 +374,42 @@ class BlazeClientGeoPoint extends BlazeGeoPoint {
   }
 }
 
-class BlazeClientArrayUnion extends BlazeArrayUnion {
+class FiremixClientArrayUnion extends FiremixArrayUnion {
   toFirebase(): any {
     return clientArrayUnion(...this.values);
   }
 }
 
-class BlazeClientIncrement extends BlazeIncrement {
+class FiremixClientIncrement extends FiremixIncrement {
   toFirebase(): any {
     return clientIncrement(this.value);
   }
 }
 
-class BlazeClientArrayRemove extends BlazeArrayRemove {
+class FiremixClientArrayRemove extends FiremixArrayRemove {
   toFirebase(): any {
     return clientArrayRemove(...this.values);
   }
 }
 
-class BlazeClientServerTimestamp extends BlazeServerTimestamp {
+class FiremixClientServerTimestamp extends FiremixServerTimestamp {
   toFirebase(): any {
     return clientServerTimestamp();
   }
 }
 
-class BlazeClientDeleteField extends BlazeDeleteField {
+class FiremixClientDeleteField extends FiremixDeleteField {
   toFirebase(): any {
     return clientDeleteField();
   }
 }
 
-export const clientF2B = (data: any) => {
+export const clientFirestoreToFiremix = (data: any) => {
   return recursiveConvert(data, (value) => {
     if (value instanceof ClientTimestamp) {
-      return [true, new BlazeClientTimestamp(value)];
+      return [true, new FiremixClientTimestamp(value)];
     } else if (value instanceof ClientGeoPoint) {
-      return [true, new BlazeClientGeoPoint(value)];
+      return [true, new FiremixClientGeoPoint(value)];
     }
     return [false, value];
   });

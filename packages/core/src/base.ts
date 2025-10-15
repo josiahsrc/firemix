@@ -6,7 +6,7 @@ import { chunkify, type Nullable } from "./utils";
 
 export type DocumentData = { [key: string]: any };
 
-export type BlazeResult<T extends DocumentData> = { data: T; id: string };
+export type FiremixResult<T extends DocumentData> = { data: T; id: string };
 
 type QueryConstraint =
   | "<"
@@ -20,77 +20,77 @@ type QueryConstraint =
   | "array-contains-any"
   | "not-in";
 
-export type BlazeConstraint = [string, QueryConstraint, unknown];
+export type FiremixConstraint = [string, QueryConstraint, unknown];
 
-export type BlazeOrdering = [string, "asc" | "desc"];
+export type FiremixOrdering = [string, "asc" | "desc"];
 
-export type BlazeLimit = ["limit", number];
+export type FiremixLimit = ["limit", number];
 
-export type BlazeQuery = BlazeConstraint | BlazeOrdering | BlazeLimit;
+export type FiremixQuery = FiremixConstraint | FiremixOrdering | FiremixLimit;
 
-export type BlazeCount = { total: number };
+export type FiremixCount = { total: number };
 
-export const mapBlazeQuery = <C, O, L>(
-  query: BlazeQuery,
+export const mapFiremixQuery = <C, O, L>(
+  query: FiremixQuery,
   args: {
-    onConstraint: (constraint: BlazeConstraint) => C;
-    onOrdering: (ordering: BlazeOrdering) => O;
-    onLimit: (limit: BlazeLimit) => L;
+    onConstraint: (constraint: FiremixConstraint) => C;
+    onOrdering: (ordering: FiremixOrdering) => O;
+    onLimit: (limit: FiremixLimit) => L;
   }
 ): C | O | L => {
   if (query.length === 3) {
-    return args.onConstraint(query as BlazeConstraint);
+    return args.onConstraint(query as FiremixConstraint);
   } else if (query[0] === "limit") {
-    return args.onLimit(query as BlazeLimit);
+    return args.onLimit(query as FiremixLimit);
   }
-  return args.onOrdering(query as BlazeOrdering);
+  return args.onOrdering(query as FiremixOrdering);
 };
 
-export abstract class BlazeTransaction {
+export abstract class FiremixTransaction {
   abstract get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>>;
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>>;
 
   abstract set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void;
 
   abstract query<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeResult<T>[]>;
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixResult<T>[]>;
 
   abstract merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void;
 
   abstract update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void;
 
-  abstract delete<T = never>(path: BlazePath<T>): void;
+  abstract delete<T = never>(path: FiremixPath<T>): void;
 
   async first<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<Nullable<FiremixResult<T>>> {
     const results = await this.query<T>(path, ...query, ["limit", 1]);
     return results.length > 0 ? results[0] : null;
   }
 }
 
 /**
- * The generic type param allows blaze to have type-safe paths. I.e. a type
- * can be associated with a path, which makes all blaze calls validate on that
+ * The generic type param allows firemix to have type-safe paths. I.e. a type
+ * can be associated with a path, which makes all firemix calls validate on that
  * type. The type T is never considered for actually looking up the path, and
  * you should not pass anything in other than strings.
  */
-export type BlazePath<T = never> = string[] | string | T;
+export type FiremixPath<T = never> = string[] | string | T;
 
-export function getPath<T>(path: BlazePath<T>): string {
+export function getPath<T>(path: FiremixPath<T>): string {
   if (Array.isArray(path)) {
     return path.join("/");
   } else if (typeof path === "string") {
@@ -100,63 +100,63 @@ export function getPath<T>(path: BlazePath<T>): string {
   }
 }
 
-export abstract class BlazeBatch {
+export abstract class FiremixBatch {
   abstract set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void;
 
   abstract merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void;
 
   abstract update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void;
 
-  abstract delete<T = never>(path: BlazePath<T>): void;
+  abstract delete<T = never>(path: FiremixPath<T>): void;
 
   abstract commit(): Promise<void>;
 }
 
-export type BlazeBatchDelegate = (batch: BlazeBatch) => void;
+export type FiremixBatchDelegate = (batch: FiremixBatch) => void;
 
-export abstract class Blaze {
+export abstract class Firemix {
   abstract transaction<R = void>(
-    fn: (tx: BlazeTransaction) => Promise<R>
+    fn: (tx: FiremixTransaction) => Promise<R>
   ): Promise<R>;
 
-  abstract batch(): BlazeBatch;
+  abstract batch(): FiremixBatch;
 
   abstract set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): Promise<void>;
 
   abstract merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void>;
 
   abstract get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>>;
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>>;
 
   abstract getMany<T extends DocumentData>(
-    paths: BlazePath<T>[]
-  ): Promise<Nullable<BlazeResult<T>>[]>;
+    paths: FiremixPath<T>[]
+  ): Promise<Nullable<FiremixResult<T>>[]>;
 
   abstract update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void>;
 
-  abstract delete<T = never>(path: BlazePath<T>): Promise<void>;
+  abstract delete<T = never>(path: FiremixPath<T>): Promise<void>;
 
   async add<T extends DocumentData>(
-    path: BlazePath<T>,
+    path: FiremixPath<T>,
     data: T
   ): Promise<string> {
     const id = this.id();
@@ -165,64 +165,64 @@ export abstract class Blaze {
   }
 
   abstract query<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeResult<T>[]>;
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixResult<T>[]>;
 
   abstract watch<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Observable<Nullable<BlazeResult<T>>>;
+    path: FiremixPath<T>
+  ): Observable<Nullable<FiremixResult<T>>>;
 
   abstract watchQuery<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Observable<BlazeResult<T>[]>;
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Observable<FiremixResult<T>[]>;
 
   async first<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<Nullable<FiremixResult<T>>> {
     const results = await this.query<T>(path, ...query, ["limit", 1]);
     return results.length > 0 ? results[0] : null;
   }
 
   watchFirst<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Observable<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Observable<Nullable<FiremixResult<T>>> {
     return this.watchQuery(path, ...query).pipe(
       map((results) => (results.length > 0 ? results[0] : null))
     );
   }
 
   abstract count<T = never>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeCount>;
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixCount>;
 
-  abstract now(): BlazeTimestamp;
+  abstract now(): FiremixTimestamp;
 
-  abstract timestampFromDate(date: Date): BlazeTimestamp;
+  abstract timestampFromDate(date: Date): FiremixTimestamp;
 
-  abstract timestampFromMillis(millis: number): BlazeTimestamp;
+  abstract timestampFromMillis(millis: number): FiremixTimestamp;
 
-  abstract timestamp(seconds: number, nanoseconds: number): BlazeTimestamp;
+  abstract timestamp(seconds: number, nanoseconds: number): FiremixTimestamp;
 
-  abstract geoPoint(latitude: number, longitude: number): BlazeGeoPoint;
+  abstract geoPoint(latitude: number, longitude: number): FiremixGeoPoint;
 
   abstract id(): string;
 
-  abstract arrayUnion(...values: unknown[]): BlazeArrayUnion;
+  abstract arrayUnion(...values: unknown[]): FiremixArrayUnion;
 
-  abstract arrayRemove(...values: unknown[]): BlazeArrayRemove;
+  abstract arrayRemove(...values: unknown[]): FiremixArrayRemove;
 
-  abstract increment(value: number): BlazeFieldValue;
+  abstract increment(value: number): FiremixFieldValue;
 
-  abstract serverTimestamp(): BlazeServerTimestamp;
+  abstract serverTimestamp(): FiremixServerTimestamp;
 
-  abstract deleteField(): BlazeDeleteField;
+  abstract deleteField(): FiremixDeleteField;
 
-  async executeBatchWrite(executors: BlazeBatchDelegate[]): Promise<void> {
+  async executeBatchWrite(executors: FiremixBatchDelegate[]): Promise<void> {
     if (executors.length === 0) {
       return;
     }
@@ -248,11 +248,11 @@ export abstract class Blaze {
     queryBuilder,
     chunkSize = 10,
   }: {
-    collectionPath: BlazePath<T>;
+    collectionPath: FiremixPath<T>;
     queryValues: Q[];
-    queryBuilder: (values: Q[]) => BlazeQuery[];
+    queryBuilder: (values: Q[]) => FiremixQuery[];
     chunkSize?: number;
-  }): Promise<BlazeResult<T>[]> {
+  }): Promise<FiremixResult<T>[]> {
     if (queryValues.length === 0) {
       return [];
     }
@@ -267,7 +267,7 @@ export abstract class Blaze {
   }
 }
 
-export type BlazeFieldKind =
+export type FiremixFieldKind =
   | "arrayUnion"
   | "increment"
   | "arrayRemove"
@@ -276,21 +276,21 @@ export type BlazeFieldKind =
   | "timestamp"
   | "geoPoint";
 
-export abstract class BlazeFieldValue {
-  constructor(kind: BlazeFieldKind) {
-    this.__blazeFieldKind = kind;
+export abstract class FiremixFieldValue {
+  constructor(kind: FiremixFieldKind) {
+    this.__firemixFieldKind = kind;
   }
 
-  private __blazeFieldKind: BlazeFieldKind;
+  private __firemixFieldKind: FiremixFieldKind;
 
   abstract toFirebase(): any;
 
-  getKind(): BlazeFieldKind {
-    return this.__blazeFieldKind;
+  getKind(): FiremixFieldKind {
+    return this.__firemixFieldKind;
   }
 }
 
-export abstract class BlazeTimestamp extends BlazeFieldValue {
+export abstract class FiremixTimestamp extends FiremixFieldValue {
   constructor(seconds: number, nanoseconds: number) {
     super("timestamp");
     this._seconds = seconds;
@@ -315,7 +315,7 @@ export abstract class BlazeTimestamp extends BlazeFieldValue {
   abstract valueOf(): string;
 }
 
-export abstract class BlazeGeoPoint extends BlazeFieldValue {
+export abstract class FiremixGeoPoint extends FiremixFieldValue {
   constructor(latitude: number, longitude: number) {
     super("geoPoint");
     this._latitude = latitude;
@@ -334,7 +334,7 @@ export abstract class BlazeGeoPoint extends BlazeFieldValue {
   }
 }
 
-export abstract class BlazeArrayUnion extends BlazeFieldValue {
+export abstract class FiremixArrayUnion extends FiremixFieldValue {
   protected values: unknown[];
   constructor(values: unknown[]) {
     super("arrayUnion");
@@ -342,7 +342,7 @@ export abstract class BlazeArrayUnion extends BlazeFieldValue {
   }
 }
 
-export abstract class BlazeIncrement extends BlazeFieldValue {
+export abstract class FiremixIncrement extends FiremixFieldValue {
   protected value: number;
   constructor(value: number) {
     super("increment");
@@ -350,7 +350,7 @@ export abstract class BlazeIncrement extends BlazeFieldValue {
   }
 }
 
-export abstract class BlazeArrayRemove extends BlazeFieldValue {
+export abstract class FiremixArrayRemove extends FiremixFieldValue {
   protected values: unknown[];
   constructor(values: unknown[]) {
     super("arrayRemove");
@@ -358,13 +358,13 @@ export abstract class BlazeArrayRemove extends BlazeFieldValue {
   }
 }
 
-export abstract class BlazeServerTimestamp extends BlazeFieldValue {
+export abstract class FiremixServerTimestamp extends FiremixFieldValue {
   constructor() {
     super("serverTimestamp");
   }
 }
 
-export abstract class BlazeDeleteField extends BlazeFieldValue {
+export abstract class FiremixDeleteField extends FiremixFieldValue {
   constructor() {
     super("deleteField");
   }
@@ -372,23 +372,23 @@ export abstract class BlazeDeleteField extends BlazeFieldValue {
 
 type Primitive = string | number | boolean | undefined | null;
 
-export type BlazeWithFieldValue<T> =
+export type FiremixWithFieldValue<T> =
   | T
   | (T extends Primitive
     ? T
     : T extends {}
     ? {
-      [K in keyof T]: BlazeWithFieldValue<T[K]> | BlazeFieldValue;
+      [K in keyof T]: FiremixWithFieldValue<T[K]> | FiremixFieldValue;
     }
     : never);
 
-export type BlazePartialWithFieldValue<T> =
+export type FiremixPartialWithFieldValue<T> =
   | Partial<T>
   | (T extends Primitive
     ? T
     : T extends {}
     ? {
-      [K in keyof T]?: BlazePartialWithFieldValue<T[K]> | BlazeFieldValue;
+      [K in keyof T]?: FiremixPartialWithFieldValue<T[K]> | FiremixFieldValue;
     }
     : never);
 
@@ -425,9 +425,9 @@ export const recursiveConvert = (
   return result;
 };
 
-export const b2f = (data: any) => {
+export const firemixToFirestore = (data: any) => {
   return recursiveConvert(data, (value) => {
-    const kind = tryGetObjectField(value, "__blazeFieldKind");
+    const kind = tryGetObjectField(value, "__firemixFieldKind");
     if (kind) {
       return [true, value.toFirebase()];
     }

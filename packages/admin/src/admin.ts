@@ -11,42 +11,42 @@ import {
   type DocumentData as AdminDocumentData,
 } from "firebase-admin/firestore";
 import {
-  b2f,
-  Blaze,
-  BlazeArrayRemove,
-  BlazeArrayUnion,
-  BlazeBatch,
-  type BlazeCount,
-  BlazeDeleteField,
-  BlazeGeoPoint,
-  BlazeIncrement,
-  type BlazePartialWithFieldValue,
-  type BlazePath,
-  type BlazeQuery,
-  type BlazeResult,
-  BlazeServerTimestamp,
-  BlazeTimestamp,
-  BlazeTransaction,
-  type BlazeWithFieldValue,
+  firemixToFirestore,
+  Firemix,
+  FiremixArrayRemove,
+  FiremixArrayUnion,
+  FiremixBatch,
+  type FiremixCount,
+  FiremixDeleteField,
+  FiremixGeoPoint,
+  FiremixIncrement,
+  type FiremixPartialWithFieldValue,
+  type FiremixPath,
+  type FiremixQuery,
+  type FiremixResult,
+  FiremixServerTimestamp,
+  FiremixTimestamp,
+  FiremixTransaction,
+  type FiremixWithFieldValue,
   type DocumentData,
+  type Nullable,
   getPath,
-  mapBlazeQuery,
+  mapFiremixQuery,
   recursiveConvert,
-} from "./base";
+} from "@firemix/core";
 import { Observable } from "rxjs";
-import type { Nullable } from "./utils";
 
 const buildResult = <T extends DocumentData>(
   id: string,
   data: AdminDocumentData
-): BlazeResult<T> => {
+): FiremixResult<T> => {
   return {
     id,
-    data: adminF2B(data),
+    data: adminFirestoreToFiremix(data),
   };
 };
 
-class BlazeAdminTransaction extends BlazeTransaction {
+class FiremixAdminTransaction extends FiremixTransaction {
   private tx: AdminTransaction;
   constructor(tx: AdminTransaction) {
     super();
@@ -54,31 +54,31 @@ class BlazeAdminTransaction extends BlazeTransaction {
   }
 
   public async get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>> {
     const ref = await this.tx.get(getAdminFirestore().doc(getPath(path)));
     const data = ref.data();
     return data ? buildResult(ref.id, data) : null;
   }
 
   public set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void {
     this.tx.set(
       getAdminFirestore().doc(getPath(path)) as AdminDocumentReference<T>,
-      b2f(data)
+      firemixToFirestore(data)
     );
   }
 
   public async query<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeResult<T>[]> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixResult<T>[]> {
     let ref: AdminQuery = getAdminFirestore().collection(getPath(path));
     query.forEach((v) => {
-      ref = mapBlazeQuery(v, {
-        onConstraint: ([field, op, value]) => ref.where(field, op, b2f(value)),
+      ref = mapFiremixQuery(v, {
+        onConstraint: ([field, op, value]) => ref.where(field, op, firemixToFirestore(value)),
         onOrdering: ([field, direction]) => ref.orderBy(field, direction),
         onLimit: ([, limit]) => ref.limit(limit),
       });
@@ -89,30 +89,30 @@ class BlazeAdminTransaction extends BlazeTransaction {
   }
 
   public merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    this.tx.set(getAdminFirestore().doc(getPath(path)), b2f(data), {
+    this.tx.set(getAdminFirestore().doc(getPath(path)), firemixToFirestore(data), {
       merge: true,
     });
   }
 
   public update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
     this.tx.update(
       getAdminFirestore().doc(getPath(path)) as AdminDocumentReference<T>,
-      b2f(data)
+      firemixToFirestore(data)
     );
   }
 
-  public delete<T = never>(path: BlazePath<T>): void {
+  public delete<T = never>(path: FiremixPath<T>): void {
     this.tx.delete(getAdminFirestore().doc(getPath(path)));
   }
 }
 
-class AdminBatch extends BlazeBatch {
+class AdminBatch extends FiremixBatch {
   private batch: AdminWriteBatch;
   constructor(batch: AdminWriteBatch) {
     super();
@@ -120,35 +120,35 @@ class AdminBatch extends BlazeBatch {
   }
 
   set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): void {
     this.batch.set(
       getAdminFirestore().doc(getPath(path)) as AdminDocumentReference<T>,
-      b2f(data)
+      firemixToFirestore(data)
     );
   }
 
   merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
-    this.batch.set(getAdminFirestore().doc(getPath(path)), b2f(data), {
+    this.batch.set(getAdminFirestore().doc(getPath(path)), firemixToFirestore(data), {
       merge: true,
     });
   }
 
   update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): void {
     this.batch.update(
       getAdminFirestore().doc(getPath(path)) as AdminDocumentReference<T>,
-      b2f(data)
+      firemixToFirestore(data)
     );
   }
 
-  delete<T = never>(path: BlazePath<T>): void {
+  delete<T = never>(path: FiremixPath<T>): void {
     this.batch.delete(getAdminFirestore().doc(getPath(path)));
   }
 
@@ -157,57 +157,57 @@ class AdminBatch extends BlazeBatch {
   }
 }
 
-export class AdminBlaze extends Blaze {
-  watch<T extends DocumentData>(): Observable<Nullable<BlazeResult<T>>> {
+export class FiremixAdmin extends Firemix {
+  watch<T extends DocumentData>(): Observable<Nullable<FiremixResult<T>>> {
     throw new Error("Method not implemented.");
   }
 
-  watchQuery<T extends DocumentData>(): Observable<BlazeResult<T>[]> {
+  watchQuery<T extends DocumentData>(): Observable<FiremixResult<T>[]> {
     throw new Error("Method not implemented.");
   }
 
-  watchCount(): Observable<BlazeCount> {
+  watchCount(): Observable<FiremixCount> {
     throw new Error("Method not implemented.");
   }
 
-  timestamp(seconds: number, nanoseconds: number): BlazeTimestamp {
-    return new BlazeAdminTimestamp(new AdminTimestamp(seconds, nanoseconds));
+  timestamp(seconds: number, nanoseconds: number): FiremixTimestamp {
+    return new FiremixAdminTimestamp(new AdminTimestamp(seconds, nanoseconds));
   }
 
-  geoPoint(latitude: number, longitude: number): BlazeGeoPoint {
-    return new BlazeAdminGeoPoint(new AdminGeoPoint(latitude, longitude));
+  geoPoint(latitude: number, longitude: number): FiremixGeoPoint {
+    return new FiremixAdminGeoPoint(new AdminGeoPoint(latitude, longitude));
   }
 
-  arrayUnion(...values: unknown[]): BlazeArrayUnion {
-    return new BlazeAdminArrayUnion(values);
+  arrayUnion(...values: unknown[]): FiremixArrayUnion {
+    return new FiremixAdminArrayUnion(values);
   }
 
-  increment(value: number): BlazeIncrement {
-    return new BlazeAdminIncrement(value);
+  increment(value: number): FiremixIncrement {
+    return new FiremixAdminIncrement(value);
   }
 
-  arrayRemove(...values: unknown[]): BlazeArrayRemove {
-    return new BlazeAdminArrayRemove(values);
+  arrayRemove(...values: unknown[]): FiremixArrayRemove {
+    return new FiremixAdminArrayRemove(values);
   }
 
-  serverTimestamp(): BlazeServerTimestamp {
-    return new BlazeAdminServerTimestamp();
+  serverTimestamp(): FiremixServerTimestamp {
+    return new FiremixAdminServerTimestamp();
   }
 
-  now(): BlazeTimestamp {
-    return new BlazeAdminTimestamp(AdminTimestamp.now());
+  now(): FiremixTimestamp {
+    return new FiremixAdminTimestamp(AdminTimestamp.now());
   }
 
-  timestampFromDate(date: Date): BlazeTimestamp {
-    return new BlazeAdminTimestamp(AdminTimestamp.fromDate(date));
+  timestampFromDate(date: Date): FiremixTimestamp {
+    return new FiremixAdminTimestamp(AdminTimestamp.fromDate(date));
   }
 
-  timestampFromMillis(millis: number): BlazeTimestamp {
-    return new BlazeAdminTimestamp(AdminTimestamp.fromMillis(millis));
+  timestampFromMillis(millis: number): FiremixTimestamp {
+    return new FiremixAdminTimestamp(AdminTimestamp.fromMillis(millis));
   }
 
-  deleteField(): BlazeDeleteField {
-    return new BlazeAdminDeleteField();
+  deleteField(): FiremixDeleteField {
+    return new FiremixAdminDeleteField();
   }
 
   id(): string {
@@ -215,45 +215,45 @@ export class AdminBlaze extends Blaze {
   }
 
   async merge<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void> {
     await getAdminFirestore()
       .doc(getPath(path))
-      .set(b2f(data), { merge: true });
+      .set(firemixToFirestore(data), { merge: true });
   }
 
   async transaction<R = void>(
-    fn: (tx: BlazeTransaction) => Promise<R>
+    fn: (tx: FiremixTransaction) => Promise<R>
   ): Promise<R> {
     return getAdminFirestore().runTransaction(async (tx) => {
-      return fn(new BlazeAdminTransaction(tx));
+      return fn(new FiremixAdminTransaction(tx));
     });
   }
 
   async count<T = never>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeCount> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixCount> {
     const ref = this.buildQuery(path, ...query);
     const res = await ref.count().get();
     return { total: res.data().count };
   }
 
-  batch(): BlazeBatch {
+  batch(): FiremixBatch {
     return new AdminBatch(getAdminFirestore().batch());
   }
 
   async set<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazeWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixWithFieldValue<T>
   ): Promise<void> {
-    await getAdminFirestore().doc(getPath(path)).set(b2f(data));
+    await getAdminFirestore().doc(getPath(path)).set(firemixToFirestore(data));
   }
 
   async get<T extends DocumentData>(
-    path: BlazePath<T>
-  ): Promise<Nullable<BlazeResult<T>>> {
+    path: FiremixPath<T>
+  ): Promise<Nullable<FiremixResult<T>>> {
     return getAdminFirestore()
       .doc(getPath(path))
       .get()
@@ -264,8 +264,8 @@ export class AdminBlaze extends Blaze {
   }
 
   async getMany<T extends DocumentData>(
-    paths: BlazePath<T>[]
-  ): Promise<Nullable<BlazeResult<T>>[]> {
+    paths: FiremixPath<T>[]
+  ): Promise<Nullable<FiremixResult<T>>[]> {
     return getAdminFirestore()
       .getAll(...paths.map((p) => getAdminFirestore().doc(getPath(p))))
       .then((docs) =>
@@ -277,24 +277,24 @@ export class AdminBlaze extends Blaze {
   }
 
   async update<T extends DocumentData>(
-    path: BlazePath<T>,
-    data: BlazePartialWithFieldValue<T>
+    path: FiremixPath<T>,
+    data: FiremixPartialWithFieldValue<T>
   ): Promise<void> {
-    await getAdminFirestore().doc(getPath(path)).update(b2f(data));
+    await getAdminFirestore().doc(getPath(path)).update(firemixToFirestore(data));
   }
 
-  async delete<T = never>(path: BlazePath<T>): Promise<void> {
+  async delete<T = never>(path: FiremixPath<T>): Promise<void> {
     await getAdminFirestore().doc(getPath(path)).delete();
   }
 
   private buildQuery<T>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
   ): AdminQuery {
     let ref: AdminQuery = getAdminFirestore().collection(getPath(path));
     query.forEach((v) => {
-      ref = mapBlazeQuery(v, {
-        onConstraint: ([field, op, value]) => ref.where(field, op, b2f(value)),
+      ref = mapFiremixQuery(v, {
+        onConstraint: ([field, op, value]) => ref.where(field, op, firemixToFirestore(value)),
         onOrdering: ([field, direction]) => ref.orderBy(field, direction),
         onLimit: ([, limit]) => ref.limit(limit),
       });
@@ -303,9 +303,9 @@ export class AdminBlaze extends Blaze {
   }
 
   async query<T extends DocumentData>(
-    path: BlazePath<T>,
-    ...query: BlazeQuery[]
-  ): Promise<BlazeResult<T>[]> {
+    path: FiremixPath<T>,
+    ...query: FiremixQuery[]
+  ): Promise<FiremixResult<T>[]> {
     return this.buildQuery(path, ...query)
       .get()
       .then((snapshot) =>
@@ -314,7 +314,7 @@ export class AdminBlaze extends Blaze {
   }
 }
 
-class BlazeAdminTimestamp extends BlazeTimestamp {
+class FiremixAdminTimestamp extends FiremixTimestamp {
   constructor(timestamp: AdminTimestamp) {
     super(timestamp.seconds, timestamp.nanoseconds);
   }
@@ -340,7 +340,7 @@ class BlazeAdminTimestamp extends BlazeTimestamp {
   }
 }
 
-class BlazeAdminGeoPoint extends BlazeGeoPoint {
+class FiremixAdminGeoPoint extends FiremixGeoPoint {
   constructor(geoPoint: AdminGeoPoint) {
     super(geoPoint.latitude, geoPoint.longitude);
   }
@@ -354,42 +354,42 @@ class BlazeAdminGeoPoint extends BlazeGeoPoint {
   }
 }
 
-class BlazeAdminArrayUnion extends BlazeArrayUnion {
+class FiremixAdminArrayUnion extends FiremixArrayUnion {
   toFirebase(): any {
     return AdminFieldValue.arrayUnion(...this.values);
   }
 }
 
-class BlazeAdminIncrement extends BlazeIncrement {
+class FiremixAdminIncrement extends FiremixIncrement {
   toFirebase(): any {
     return AdminFieldValue.increment(this.value);
   }
 }
 
-class BlazeAdminArrayRemove extends BlazeArrayRemove {
+class FiremixAdminArrayRemove extends FiremixArrayRemove {
   toFirebase(): any {
     return AdminFieldValue.arrayRemove(...this.values);
   }
 }
 
-class BlazeAdminServerTimestamp extends BlazeServerTimestamp {
+class FiremixAdminServerTimestamp extends FiremixServerTimestamp {
   toFirebase(): any {
     return AdminFieldValue.serverTimestamp();
   }
 }
 
-class BlazeAdminDeleteField extends BlazeDeleteField {
+class FiremixAdminDeleteField extends FiremixDeleteField {
   toFirebase(): any {
     return AdminFieldValue.delete();
   }
 }
 
-export const adminF2B = (data: any) => {
+export const adminFirestoreToFiremix = (data: any) => {
   return recursiveConvert(data, (value) => {
     if (value instanceof AdminTimestamp) {
-      return [true, new BlazeAdminTimestamp(value)];
+      return [true, new FiremixAdminTimestamp(value)];
     } else if (value instanceof AdminGeoPoint) {
-      return [true, new BlazeAdminGeoPoint(value)];
+      return [true, new FiremixAdminGeoPoint(value)];
     }
     return [false, value];
   });

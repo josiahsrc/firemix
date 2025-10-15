@@ -1,15 +1,9 @@
 {
-  "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "noImplicitReturns": true,
-    "noUnusedLocals": false,
-    "outDir": "dist",
-    "sourceMap": true,
-    "strict": true,
-    "target": "es2017",
-    "allowJs": true,
-    "verbatimModuleSyntax": true,
-  },
-  "compileOnSave": true
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/client" },
+    { "path": "./packages/admin" },
+    { "path": "./packages/mixed" }
+  ]
 }

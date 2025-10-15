@@ -1,0 +1,28 @@
+{
+  "name": "@firemix/core",
+  "version": "0.1.0",
+  "description": "Core Firemix types and abstractions shared by Firemix SDK variants.",
+  "type": "module",
+  "license": "ISC",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b .",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.1"
+  }
+}

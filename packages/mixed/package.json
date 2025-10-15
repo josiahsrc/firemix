@@ -1,0 +1,38 @@
+{
+  "name": "@firemix/mixed",
+  "version": "0.1.0",
+  "description": "Firemix SDK bundling both client and admin Firebase strategies with zone support.",
+  "type": "module",
+  "license": "ISC",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b .",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@firemix/admin": "file:../admin",
+    "@firemix/client": "file:../client",
+    "@firemix/core": "file:../core"
+  },
+  "peerDependencies": {
+    "firebase": "^11.1.0",
+    "firebase-admin": "^13.0.2"
+  },
+  "devDependencies": {
+    "firebase": "^11.1.0",
+    "firebase-admin": "^13.0.2"
+  }
+}

@@ -1,10 +1,9 @@
-import { b2f, recursiveConvert } from "./base";
+import { firemixToFirestore, recursiveConvert } from "../src";
 import {
 	Timestamp as ClientTimestamp,
 	deleteField as clientDeleteField,
 } from "firebase/firestore";
-import { clientF2B } from "./client";
-import { blaze, setBlazeSdk } from "./strategy.all";
+import { FiremixClient, clientFirestoreToFiremix } from "@firemix/client";
 
 describe("recursiveConvert", () => {
 	const convert = (obj: any) => {
@@ -42,35 +41,35 @@ describe("recursiveConvert", () => {
 	});
 });
 
-describe("b2f", () => {
+describe("firemixToFirestore", () => {
 	it("converts field values", () => {
-		setBlazeSdk("client");
+		const firemix = new FiremixClient();
 
-		expect(b2f(blaze().deleteField())).toEqual({ _methodName: "deleteField" });
-		expect(b2f(blaze().arrayRemove(42))).toEqual({
+		expect(firemixToFirestore(firemix.deleteField())).toEqual({ _methodName: "deleteField" });
+		expect(firemixToFirestore(firemix.arrayRemove(42))).toEqual({
 			_methodName: "arrayRemove",
 			_elements: [42],
 		});
-		expect(b2f(blaze().arrayUnion(42))).toEqual({
+		expect(firemixToFirestore(firemix.arrayUnion(42))).toEqual({
 			_methodName: "arrayUnion",
 			_elements: [42],
 		});
-		expect(b2f(blaze().serverTimestamp())).toEqual({
+		expect(firemixToFirestore(firemix.serverTimestamp())).toEqual({
 			_methodName: "serverTimestamp",
 		});
 
 		const date = new Date(2021, 1, 1);
-		expect(b2f(blaze().timestampFromDate(date))).toEqual(
+		expect(firemixToFirestore(firemix.timestampFromDate(date))).toEqual(
 			ClientTimestamp.fromDate(date)
 		);
 
-		const nestedDateObj = { a: { b: blaze().timestampFromDate(date) } };
-		expect(b2f(nestedDateObj)).toEqual({
+		const nestedDateObj = { a: { b: firemix.timestampFromDate(date) } };
+		expect(firemixToFirestore(nestedDateObj)).toEqual({
 			a: { b: ClientTimestamp.fromDate(date) },
 		});
 
-		const superNestedDateObj = { a: [{ b: blaze().timestampFromDate(date) }] };
-		expect(b2f(superNestedDateObj)).toEqual({
+		const superNestedDateObj = { a: [{ b: firemix.timestampFromDate(date) }] };
+		expect(firemixToFirestore(superNestedDateObj)).toEqual({
 			a: [{ b: ClientTimestamp.fromDate(date) }],
 		});
 
@@ -78,14 +77,14 @@ describe("b2f", () => {
 			a: 1,
 			b: 2,
 			c: {
-				delete: blaze().deleteField(),
-				arrayUnion: blaze().arrayUnion(42),
-				arrayRemove: blaze().arrayRemove(42),
-				serverTimestamp: blaze().serverTimestamp(),
+				delete: firemix.deleteField(),
+				arrayUnion: firemix.arrayUnion(42),
+				arrayRemove: firemix.arrayRemove(42),
+				serverTimestamp: firemix.serverTimestamp(),
 				z: [1, 2, 3],
 			},
 		};
-		expect(b2f(ultimateTestObj)).toEqual({
+		expect(firemixToFirestore(ultimateTestObj)).toEqual({
 			a: 1,
 			b: 2,
 			c: {
@@ -99,9 +98,9 @@ describe("b2f", () => {
 	});
 });
 
-describe("clientF2B", () => {
+describe("clientFirestoreToFiremix", () => {
 	it("converts field values", () => {
-		expect(clientF2B(clientDeleteField())).toEqual({
+		expect(clientFirestoreToFiremix(clientDeleteField())).toEqual({
 			_methodName: "deleteField",
 		});
 	});
