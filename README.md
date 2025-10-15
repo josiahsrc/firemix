@@ -24,29 +24,46 @@ npm install @firemix/mixed firebase firebase-admin
 Each published package ships ESM output with TypeScript declarations. All
 exports are tree-shakeable and marked as side-effect free.
 
-## Quick Start
+## Quick start
+
+It's helpful to share types between client SDKs and admin SDKs. However, this becomes difficult when a type needs to use a timestamp, you're kind of stuck on either using a generic parameter, forking the type and having one for the client and one for the admin. Firemix is a wrapper that basically makes everything SDK agnostic.
+
+This also means Firemix exposes a unified API between the client SDK and the admin SDK.
 
 ```ts
-import { FiremixClient } from "@firemix/client";
+type User = {
+	name: string;
+	createdAt: FiremixTimestamp; // works in both client and admin
+};
 
-const firemix = new FiremixClient();
-await firemix.set(["users", "ada"], { name: "Ada" });
-const result = await firemix.get(["users", "ada"]);
+// works for client
+firemix("client").set<User>(["users", "ada"], {
+	name: "Ada",
+	createdAt: firemix("client").now(),
+});
 
-import { firemix, firemixSdkZone } from "@firemix/mixed";
+// works for admin
+firemix("admin").set<User>(["users", "ada"], {
+	name: "Ada",
+	createdAt: firemix("admin").now(),
+});
 
-await firemixSdkZone("admin", async () => {
-  await firemix().delete(["tenants", "legacy"]);
+// use zones to avoid passing the sdk everywhere
+firemixSdkZone("client", async () => {
+	await firemix().set<User>(["users", "ada"], {
+		name: "Ada",
+		createdAt: firemix().now(), // uses the client sdk from the zone
+	});
 });
 ```
 
-## Local Development
+## Local development
 
 - `npm install` – install dependencies across the workspace.
 - `npm run build` – emit compiled artifacts to `packages/*/dist`.
 - `npm test` – run the Jest suite for all packages.
 - `npm run type-check` – validate TypeScript without emitting files.
 
-Publishing individual packages can be done from their directory using
-`npm publish --access public` once the `file:` workspace links are replaced with
-version numbers.
+---
+
+keywords: firebase, firestore, typescript, typesafe, wrapper, admin, client, sdk, strategy, zone, async-hooks

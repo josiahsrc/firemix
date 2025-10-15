@@ -20,9 +20,9 @@ type QueryConstraint =
   | "array-contains-any"
   | "not-in";
 
-export type FiremixConstraint = [string, QueryConstraint, unknown];
+export type FiremixConstraint = ["where", string, QueryConstraint, unknown];
 
-export type FiremixOrdering = [string, "asc" | "desc"];
+export type FiremixOrdering = ["orderBy", string, "asc" | "desc"];
 
 export type FiremixLimit = ["limit", number];
 
@@ -38,12 +38,15 @@ export const mapFiremixQuery = <C, O, L>(
     onLimit: (limit: FiremixLimit) => L;
   }
 ): C | O | L => {
-  if (query.length === 3) {
+  if (query[0] === "where") {
     return args.onConstraint(query as FiremixConstraint);
   } else if (query[0] === "limit") {
     return args.onLimit(query as FiremixLimit);
+  } else if (query[0] === "orderBy") {
+    return args.onOrdering(query as FiremixOrdering);
+  } else {
+    throw new Error(`Unknown query type: ${query}`);
   }
-  return args.onOrdering(query as FiremixOrdering);
 };
 
 export abstract class FiremixTransaction {

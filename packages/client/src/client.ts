@@ -281,9 +281,9 @@ export class FiremixClient extends Firemix {
   private buildQuery<T>(path: FiremixPath<T>, ...query: FiremixQuery[]) {
     const convertedQuery = query.map((v) => {
       return mapFiremixQuery(v, {
-        onConstraint: ([field, op, value]) =>
+        onConstraint: ([, field, op, value]) =>
           clientWhere(field, op, firemixToFirestore(value)),
-        onOrdering: ([field, direction]) => clientOrderBy(field, direction),
+        onOrdering: ([, field, direction]) => clientOrderBy(field, direction),
         onLimit: ([, limit]) => clientLimit(limit),
       });
     });
