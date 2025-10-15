@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Semver bump to apply
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || 'patch' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+          scope: '@firemix'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine next version
+        id: version
+        run: |
+          NEW_VERSION=$(node - <<'NODE'
+          const { execSync } = require('node:child_process');
+
+          const bump = process.env.RELEASE_TYPE || 'patch';
+          const valid = new Set(['patch', 'minor', 'major']);
+          if (!valid.has(bump)) {
+            throw new Error(\`Unsupported release type: \${bump}\`);
+          }
+
+          let latestTag = '';
+          try {
+            latestTag = execSync('git describe --tags --abbrev=0', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+          } catch {
+            latestTag = '';
+          }
+
+          let version = latestTag.replace(/^v/, '');
+          if (!/^\d+\.\d+\.\d+$/.test(version)) {
+            version = '0.1.0';
+          }
+
+          let [major, minor, patch] = version.split('.').map((segment) => Number.parseInt(segment, 10));
+          if ([major, minor, patch].some((n) => Number.isNaN(n))) {
+            major = 0;
+            minor = 0;
+            patch = 0;
+          }
+
+          switch (bump) {
+            case 'major':
+              major += 1;
+              minor = 0;
+              patch = 0;
+              break;
+            case 'minor':
+              minor += 1;
+              patch = 0;
+              break;
+            default:
+              patch += 1;
+          }
+
+          const next = \`\${major}.\${minor}.\${patch}\`;
+          console.log(next);
+          NODE
+          )
+
+          echo "value=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+        env:
+          RELEASE_TYPE: ${{ env.RELEASE_TYPE }}
+
+      - name: Update versions
+        run: npm version "${{ steps.version.outputs.value }}" --workspaces --include-workspace-root --no-git-tag-version
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit version bump
+        run: |
+          if git status --porcelain | grep .; then
+            git add package.json package-lock.json packages/*/package.json
+            git commit -m "chore(release): v${{ steps.version.outputs.value }} [skip ci]"
+          else
+            echo "No changes detected after version update"
+          fi
+
+      - name: Build packages
+        run: npm run build --workspaces --if-present
+
+      - name: Publish packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --workspace @firemix/client --access public
+          npm publish --workspace @firemix/admin --access public
+          npm publish --workspace @firemix/mixed --access public
+
+      - name: Create release tag
+        run: git tag "v${{ steps.version.outputs.value }}"
+
+      - name: Push changes
+        run: |
+          git push origin HEAD
+          git push origin "v${{ steps.version.outputs.value }}"
