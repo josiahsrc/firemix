@@ -26,24 +26,33 @@ export type FiremixOrdering = ["orderBy", string, "asc" | "desc"];
 
 export type FiremixLimit = ["limit", number];
 
-export type FiremixQuery = FiremixConstraint | FiremixOrdering | FiremixLimit;
+export type FiremixStartAfter = ["startAfter", string]
+
+export type FiremixQuery =
+  | FiremixConstraint
+  | FiremixOrdering
+  | FiremixLimit
+  | FiremixStartAfter;
 
 export type FiremixCount = { total: number };
 
-export const mapFiremixQuery = <C, O, L>(
+export const mapFiremixQuery = <C, O, L, F>(
   query: FiremixQuery,
   args: {
     onConstraint: (constraint: FiremixConstraint) => C;
     onOrdering: (ordering: FiremixOrdering) => O;
     onLimit: (limit: FiremixLimit) => L;
+    onStartAfter: (offset: FiremixStartAfter) => F;
   }
-): C | O | L => {
+): C | O | L | F => {
   if (query[0] === "where") {
     return args.onConstraint(query as FiremixConstraint);
   } else if (query[0] === "limit") {
     return args.onLimit(query as FiremixLimit);
   } else if (query[0] === "orderBy") {
     return args.onOrdering(query as FiremixOrdering);
+  } else if (query[0] === "startAfter") {
+    return args.onStartAfter(query as FiremixStartAfter);
   } else {
     throw new Error(`Unknown query type: ${query}`);
   }

@@ -14,6 +14,7 @@ import {
   getDoc as clientGetDoc,
   getDocs as clientGetDocs,
   limit as clientLimit,
+  startAfter as clientStartAfter,
   orderBy as clientOrderBy,
   query as clientQuery,
   serverTimestamp as clientServerTimestamp,
@@ -285,6 +286,7 @@ export class FiremixClient extends Firemix {
           clientWhere(field, op, firemixToFirestore(value)),
         onOrdering: ([, field, direction]) => clientOrderBy(field, direction),
         onLimit: ([, limit]) => clientLimit(limit),
+        onStartAfter: ([, field]) => clientStartAfter(field),
       });
     });
 

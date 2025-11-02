@@ -81,6 +81,7 @@ class FiremixAdminTransaction extends FiremixTransaction {
         onConstraint: ([, field, op, value]) => ref.where(field, op, firemixToFirestore(value)),
         onOrdering: ([, field, direction]) => ref.orderBy(field, direction),
         onLimit: ([, limit]) => ref.limit(limit),
+        onStartAfter: ([, startAfter]) => ref.startAfter(startAfter),
       });
     });
 
@@ -297,6 +298,7 @@ export class FiremixAdmin extends Firemix {
         onConstraint: ([, field, op, value]) => ref.where(field, op, firemixToFirestore(value)),
         onOrdering: ([, field, direction]) => ref.orderBy(field, direction),
         onLimit: ([, limit]) => ref.limit(limit),
+        onStartAfter: ([, startAfter]) => ref.startAfter(startAfter),
       });
     });
     return ref;
