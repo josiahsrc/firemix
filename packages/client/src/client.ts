@@ -142,7 +142,7 @@ class ClientBatch extends FiremixBatch {
     path: FiremixPath<T>,
     data: FiremixPartialWithFieldValue<T>
   ): void {
-    clientSetDoc(getClientReference<T>(path), firemixToFirestore(data));
+    clientSetDoc(getClientReference<T>(path), firemixToFirestore(data), { merge: true });
   }
 
   update<T extends DocumentData>(
