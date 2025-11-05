@@ -256,7 +256,7 @@ export class FiremixClient extends Firemix {
     path: FiremixPath<T>,
     data: FiremixPartialWithFieldValue<T>
   ): Promise<void> {
-    await clientSetDoc(getClientReference<T>(path), firemixToFirestore(data));
+    await clientSetDoc(getClientReference<T>(path), firemixToFirestore(data), { merge: true });
   }
 
   async update<T extends DocumentData>(
