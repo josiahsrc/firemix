@@ -33,6 +33,7 @@ import {
 import { Observable } from "rxjs";
 import {
   firemixToFirestore,
+  firemixRealtimeToFirebase,
   Firemix,
   FiremixArrayRemove,
   FiremixArrayUnion,
@@ -51,6 +52,8 @@ import {
   type FiremixRealtimeDatabase,
   type FiremixRealtimeReference,
   type FiremixRealtimeSnapshot,
+  type FiremixRealtimeWithFieldValue,
+  FiremixRealtimeIncrement,
   type FiremixWithFieldValue,
   type DocumentData,
   type Nullable,
@@ -74,6 +77,7 @@ import {
   remove as clientRealtimeRemove,
   set as clientRealtimeSet,
   update as clientRealtimeUpdate,
+  increment as clientRealtimeIncrement,
   type ThenableReference,
 } from "firebase/database";
 
@@ -182,6 +186,12 @@ class ClientBatch extends FiremixBatch {
   }
 }
 
+class ClientRealtimeIncrement extends FiremixRealtimeIncrement {
+  toFirebase(): any {
+    return clientRealtimeIncrement(this.value);
+  }
+}
+
 class ClientRealtimeSnapshot implements FiremixRealtimeSnapshot {
   constructor(private readonly snapshot: ClientRealtimeDataSnapshot) {}
 
@@ -247,23 +257,35 @@ class ClientRealtimeReference implements FiremixRealtimeReference {
     return new ClientRealtimeSnapshot(snapshot);
   }
 
-  async set<T = unknown>(value: T): Promise<void> {
-    await clientRealtimeSet(this.reference, value);
+  async set<T = unknown>(
+    value: FiremixRealtimeWithFieldValue<T>
+  ): Promise<void> {
+    await clientRealtimeSet(this.reference, firemixRealtimeToFirebase(value));
   }
 
-  async update<T extends Record<string, unknown>>(value: T): Promise<void> {
-    await clientRealtimeUpdate(this.reference, value);
+  async update<T extends Record<string, unknown>>(
+    value: FiremixRealtimeWithFieldValue<T>
+  ): Promise<void> {
+    await clientRealtimeUpdate(
+      this.reference,
+      firemixRealtimeToFirebase(value)
+    );
   }
 
   async remove(): Promise<void> {
     await clientRealtimeRemove(this.reference);
   }
 
-  async push<T = unknown>(value?: T): Promise<FiremixRealtimeReference> {
+  async push<T = unknown>(
+    value?: FiremixRealtimeWithFieldValue<T>
+  ): Promise<FiremixRealtimeReference> {
     const pushedRef: ThenableReference =
       value === undefined
         ? clientRealtimePush(this.reference)
-        : clientRealtimePush(this.reference, value);
+        : clientRealtimePush(
+            this.reference,
+            firemixRealtimeToFirebase(value)
+          );
     if (value !== undefined) {
       await pushedRef;
     }
@@ -308,6 +330,10 @@ class ClientRealtimeDatabaseAdapter implements FiremixRealtimeDatabase {
 
   goOnline(): void {
     clientRealtimeGoOnline(this.db);
+  }
+
+  increment(value: number): FiremixRealtimeIncrement {
+    return new ClientRealtimeIncrement(value);
   }
 
   toFirebase(): ClientRealtimeDatabase {

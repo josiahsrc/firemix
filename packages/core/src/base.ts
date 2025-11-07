@@ -55,12 +55,14 @@ export interface FiremixRealtimeReference {
   readonly root: FiremixRealtimeReference;
   child(path: string): FiremixRealtimeReference;
   get<T = unknown>(): Promise<FiremixRealtimeSnapshot<T>>;
-  set<T = unknown>(value: T): Promise<void>;
+  set<T = unknown>(value: FiremixRealtimeWithFieldValue<T>): Promise<void>;
   update<T extends Record<string, unknown>>(
-    value: T
+    value: FiremixRealtimeWithFieldValue<T>
   ): Promise<void>;
   remove(): Promise<void>;
-  push<T = unknown>(value?: T): Promise<FiremixRealtimeReference>;
+  push<T = unknown>(
+    value?: FiremixRealtimeWithFieldValue<T>
+  ): Promise<FiremixRealtimeReference>;
   onValue(
     callback: (snapshot: FiremixRealtimeSnapshot) => void,
     errorCallback?: (error: Error) => void
@@ -73,6 +75,7 @@ export interface FiremixRealtimeDatabase {
   refFromURL(url: string): FiremixRealtimeReference;
   goOffline(): void;
   goOnline(): void;
+  increment(value: number): FiremixRealtimeIncrement;
   toFirebase(): unknown;
 }
 
@@ -424,6 +427,30 @@ export abstract class FiremixDeleteField extends FiremixFieldValue {
   }
 }
 
+export type FiremixRealtimeFieldKind = "increment";
+
+export abstract class FiremixRealtimeFieldValue {
+  constructor(kind: FiremixRealtimeFieldKind) {
+    this.__firemixRealtimeFieldKind = kind;
+  }
+
+  private __firemixRealtimeFieldKind: FiremixRealtimeFieldKind;
+
+  abstract toFirebase(): any;
+
+  getKind(): FiremixRealtimeFieldKind {
+    return this.__firemixRealtimeFieldKind;
+  }
+}
+
+export abstract class FiremixRealtimeIncrement extends FiremixRealtimeFieldValue {
+  protected value: number;
+  constructor(value: number) {
+    super("increment");
+    this.value = value;
+  }
+}
+
 type Primitive = string | number | boolean | undefined | null;
 
 export type FiremixWithFieldValue<T> =
@@ -443,6 +470,19 @@ export type FiremixPartialWithFieldValue<T> =
     : T extends {}
     ? {
       [K in keyof T]?: FiremixPartialWithFieldValue<T[K]> | FiremixFieldValue;
+    }
+    : never);
+
+export type FiremixRealtimeWithFieldValue<T> =
+  | T
+  | FiremixRealtimeFieldValue
+  | (T extends Primitive
+    ? never
+    : T extends {}
+    ? {
+      [K in keyof T]:
+        | FiremixRealtimeWithFieldValue<T[K]>
+        | FiremixRealtimeFieldValue;
     }
     : never);
 
@@ -482,6 +522,16 @@ export const recursiveConvert = (
 export const firemixToFirestore = (data: any) => {
   return recursiveConvert(data, (value) => {
     const kind = tryGetObjectField(value, "__firemixFieldKind");
+    if (kind) {
+      return [true, value.toFirebase()];
+    }
+    return [false, value];
+  });
+};
+
+export const firemixRealtimeToFirebase = (data: any) => {
+  return recursiveConvert(data, (value) => {
+    const kind = tryGetObjectField(value, "__firemixRealtimeFieldKind");
     if (kind) {
       return [true, value.toFirebase()];
     }

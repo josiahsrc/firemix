@@ -15,9 +15,11 @@ import {
   Database as AdminRealtimeDatabase,
   Reference as AdminDatabaseReference,
   DataSnapshot as AdminRealtimeDataSnapshot,
+  ServerValue as AdminRealtimeServerValue,
 } from "firebase-admin/database";
 import {
   firemixToFirestore,
+  firemixRealtimeToFirebase,
   Firemix,
   FiremixArrayRemove,
   FiremixArrayUnion,
@@ -36,6 +38,8 @@ import {
   type FiremixRealtimeDatabase,
   type FiremixRealtimeReference,
   type FiremixRealtimeSnapshot,
+  FiremixRealtimeIncrement,
+  type FiremixRealtimeWithFieldValue,
   type FiremixWithFieldValue,
   type DocumentData,
   type Nullable,
@@ -167,6 +171,12 @@ class AdminBatch extends FiremixBatch {
   }
 }
 
+class AdminRealtimeIncrement extends FiremixRealtimeIncrement {
+  toFirebase(): any {
+    return AdminRealtimeServerValue.increment(this.value);
+  }
+}
+
 class AdminRealtimeSnapshot implements FiremixRealtimeSnapshot {
   constructor(private readonly snapshot: AdminRealtimeDataSnapshot) {}
 
@@ -234,22 +244,28 @@ class AdminRealtimeReferenceAdapter implements FiremixRealtimeReference {
     return new AdminRealtimeSnapshot(snapshot);
   }
 
-  async set<T = unknown>(value: T): Promise<void> {
-    await this.reference.set(value);
+  async set<T = unknown>(
+    value: FiremixRealtimeWithFieldValue<T>
+  ): Promise<void> {
+    await this.reference.set(firemixRealtimeToFirebase(value));
   }
 
-  async update<T extends Record<string, unknown>>(value: T): Promise<void> {
-    await this.reference.update(value);
+  async update<T extends Record<string, unknown>>(
+    value: FiremixRealtimeWithFieldValue<T>
+  ): Promise<void> {
+    await this.reference.update(firemixRealtimeToFirebase(value));
   }
 
   async remove(): Promise<void> {
     await this.reference.remove();
   }
 
-  async push<T = unknown>(value?: T): Promise<FiremixRealtimeReference> {
+  async push<T = unknown>(
+    value?: FiremixRealtimeWithFieldValue<T>
+  ): Promise<FiremixRealtimeReference> {
     const pushed = this.reference.push();
     if (value !== undefined) {
-      await pushed.set(value);
+      await pushed.set(firemixRealtimeToFirebase(value));
     }
     return this.wrap(pushed);
   }
@@ -292,6 +308,10 @@ class AdminRealtimeDatabaseAdapter implements FiremixRealtimeDatabase {
 
   goOnline(): void {
     this.db.goOnline();
+  }
+
+  increment(value: number): FiremixRealtimeIncrement {
+    return new AdminRealtimeIncrement(value);
   }
 
   toFirebase(): AdminRealtimeDatabase {
