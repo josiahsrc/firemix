@@ -1,6 +1,6 @@
 {
   "name": "@firemix/client",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Firemix SDK targeting client-side Firebase usage.",
   "publishConfig": {
     "access": "public"
