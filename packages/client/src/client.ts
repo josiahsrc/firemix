@@ -48,6 +48,9 @@ import {
   FiremixServerTimestamp,
   FiremixTimestamp,
   FiremixTransaction,
+  type FiremixRealtimeDatabase,
+  type FiremixRealtimeReference,
+  type FiremixRealtimeSnapshot,
   type FiremixWithFieldValue,
   type DocumentData,
   type Nullable,
@@ -55,6 +58,24 @@ import {
   mapFiremixQuery,
   recursiveConvert,
 } from "@firemix/core";
+import {
+  child as clientRealtimeChild,
+  DataSnapshot as ClientRealtimeDataSnapshot,
+  Database as ClientRealtimeDatabase,
+  DatabaseReference as ClientRealtimeDatabaseReference,
+  getDatabase as getClientRealtimeDatabase,
+  get as clientRealtimeGet,
+  goOffline as clientRealtimeGoOffline,
+  goOnline as clientRealtimeGoOnline,
+  onValue as onClientRealtimeValue,
+  push as clientRealtimePush,
+  ref as clientRealtimeRef,
+  refFromURL as clientRealtimeRefFromURL,
+  remove as clientRealtimeRemove,
+  set as clientRealtimeSet,
+  update as clientRealtimeUpdate,
+  type ThenableReference,
+} from "firebase/database";
 
 const clientSnapshotSettings: ClientSnapshotOptions = {
   serverTimestamps: "estimate",
@@ -160,6 +181,141 @@ class ClientBatch extends FiremixBatch {
     await this.batch.commit();
   }
 }
+
+class ClientRealtimeSnapshot implements FiremixRealtimeSnapshot {
+  constructor(private readonly snapshot: ClientRealtimeDataSnapshot) {}
+
+  get key(): string | null {
+    return this.snapshot.key;
+  }
+
+  child(path: string): FiremixRealtimeSnapshot {
+    return new ClientRealtimeSnapshot(this.snapshot.child(path));
+  }
+
+  exists(): boolean {
+    return this.snapshot.exists();
+  }
+
+  val<T = unknown>(): T {
+    return this.snapshot.val() as T;
+  }
+
+  forEach(
+    action: (snapshot: FiremixRealtimeSnapshot) => boolean | void
+  ): boolean {
+    let canceled = false;
+    this.snapshot.forEach((child) => {
+      const result = action(new ClientRealtimeSnapshot(child));
+      if (result === true) {
+        canceled = true;
+        return true;
+      }
+      return false;
+    });
+    return canceled;
+  }
+
+  toFirebase(): ClientRealtimeDataSnapshot {
+    return this.snapshot;
+  }
+}
+
+class ClientRealtimeReference implements FiremixRealtimeReference {
+  constructor(private readonly reference: ClientRealtimeDatabaseReference) {}
+
+  get key(): string | null {
+    return this.reference.key;
+  }
+
+  get parent(): FiremixRealtimeReference | null {
+    return this.reference.parent
+      ? new ClientRealtimeReference(this.reference.parent)
+      : null;
+  }
+
+  get root(): FiremixRealtimeReference {
+    return new ClientRealtimeReference(this.reference.root);
+  }
+
+  child(path: string): FiremixRealtimeReference {
+    return new ClientRealtimeReference(clientRealtimeChild(this.reference, path));
+  }
+
+  async get<T = unknown>(): Promise<FiremixRealtimeSnapshot<T>> {
+    const snapshot = await clientRealtimeGet(this.reference);
+    return new ClientRealtimeSnapshot(snapshot);
+  }
+
+  async set<T = unknown>(value: T): Promise<void> {
+    await clientRealtimeSet(this.reference, value);
+  }
+
+  async update<T extends Record<string, unknown>>(value: T): Promise<void> {
+    await clientRealtimeUpdate(this.reference, value);
+  }
+
+  async remove(): Promise<void> {
+    await clientRealtimeRemove(this.reference);
+  }
+
+  async push<T = unknown>(value?: T): Promise<FiremixRealtimeReference> {
+    const pushedRef: ThenableReference =
+      value === undefined
+        ? clientRealtimePush(this.reference)
+        : clientRealtimePush(this.reference, value);
+    if (value !== undefined) {
+      await pushedRef;
+    }
+    return new ClientRealtimeReference(pushedRef);
+  }
+
+  onValue(
+    callback: (snapshot: FiremixRealtimeSnapshot) => void,
+    errorCallback?: (error: Error) => void
+  ): () => void {
+    const unsubscribe = onClientRealtimeValue(
+      this.reference,
+      (snapshot) => callback(new ClientRealtimeSnapshot(snapshot)),
+      errorCallback
+    );
+    return () => {
+      unsubscribe();
+    };
+  }
+
+  toFirebase(): ClientRealtimeDatabaseReference {
+    return this.reference;
+  }
+}
+
+class ClientRealtimeDatabaseAdapter implements FiremixRealtimeDatabase {
+  constructor(private readonly db: ClientRealtimeDatabase) {}
+
+  ref(path?: string): FiremixRealtimeReference {
+    return new ClientRealtimeReference(
+      clientRealtimeRef(this.db, path ?? undefined)
+    );
+  }
+
+  refFromURL(url: string): FiremixRealtimeReference {
+    return new ClientRealtimeReference(clientRealtimeRefFromURL(this.db, url));
+  }
+
+  goOffline(): void {
+    clientRealtimeGoOffline(this.db);
+  }
+
+  goOnline(): void {
+    clientRealtimeGoOnline(this.db);
+  }
+
+  toFirebase(): ClientRealtimeDatabase {
+    return this.db;
+  }
+}
+
+let cachedRealtimeDb: ClientRealtimeDatabaseAdapter | null = null;
 
 export class FiremixClient extends Firemix {
   getMany<T extends DocumentData>(): Promise<Nullable<FiremixResult<T>>[]> {
@@ -315,6 +471,15 @@ export class FiremixClient extends Firemix {
 
   batch(): FiremixBatch {
     return new ClientBatch(clientWriteBatch(getClientFirestore()));
+  }
+
+  realtime(): FiremixRealtimeDatabase {
+    if (!cachedRealtimeDb) {
+      cachedRealtimeDb = new ClientRealtimeDatabaseAdapter(
+        getClientRealtimeDatabase()
+      );
+    }
+    return cachedRealtimeDb;
   }
 
   async set<T extends DocumentData>(

@@ -11,6 +11,12 @@ import {
   type DocumentData as AdminDocumentData,
 } from "firebase-admin/firestore";
 import {
+  getDatabase as getAdminRealtimeDatabase,
+  Database as AdminRealtimeDatabase,
+  Reference as AdminDatabaseReference,
+  DataSnapshot as AdminRealtimeDataSnapshot,
+} from "firebase-admin/database";
+import {
   firemixToFirestore,
   Firemix,
   FiremixArrayRemove,
@@ -27,6 +33,9 @@ import {
   FiremixServerTimestamp,
   FiremixTimestamp,
   FiremixTransaction,
+  type FiremixRealtimeDatabase,
+  type FiremixRealtimeReference,
+  type FiremixRealtimeSnapshot,
   type FiremixWithFieldValue,
   type DocumentData,
   type Nullable,
@@ -158,6 +167,140 @@ class AdminBatch extends FiremixBatch {
   }
 }
 
+class AdminRealtimeSnapshot implements FiremixRealtimeSnapshot {
+  constructor(private readonly snapshot: AdminRealtimeDataSnapshot) {}
+
+  get key(): string | null {
+    return this.snapshot.key;
+  }
+
+  child(path: string): FiremixRealtimeSnapshot {
+    return new AdminRealtimeSnapshot(this.snapshot.child(path));
+  }
+
+  exists(): boolean {
+    return this.snapshot.exists();
+  }
+
+  val<T = unknown>(): T {
+    return this.snapshot.val() as T;
+  }
+
+  forEach(
+    action: (snapshot: FiremixRealtimeSnapshot) => boolean | void
+  ): boolean {
+    let canceled = false;
+    this.snapshot.forEach((child) => {
+      const result = action(new AdminRealtimeSnapshot(child));
+      if (result === true) {
+        canceled = true;
+        return true;
+      }
+      return false;
+    });
+    return canceled;
+  }
+
+  toFirebase(): AdminRealtimeDataSnapshot {
+    return this.snapshot;
+  }
+}
+
+class AdminRealtimeReferenceAdapter implements FiremixRealtimeReference {
+  constructor(private readonly reference: AdminDatabaseReference) {}
+
+  private wrap(reference: AdminDatabaseReference): FiremixRealtimeReference {
+    return new AdminRealtimeReferenceAdapter(reference);
+  }
+
+  get key(): string | null {
+    return this.reference.key;
+  }
+
+  get parent(): FiremixRealtimeReference | null {
+    return this.reference.parent ? this.wrap(this.reference.parent) : null;
+  }
+
+  get root(): FiremixRealtimeReference {
+    return this.wrap(this.reference.root);
+  }
+
+  child(path: string): FiremixRealtimeReference {
+    return this.wrap(this.reference.child(path));
+  }
+
+  async get<T = unknown>(): Promise<FiremixRealtimeSnapshot<T>> {
+    const snapshot = await this.reference.get();
+    return new AdminRealtimeSnapshot(snapshot);
+  }
+
+  async set<T = unknown>(value: T): Promise<void> {
+    await this.reference.set(value);
+  }
+
+  async update<T extends Record<string, unknown>>(value: T): Promise<void> {
+    await this.reference.update(value);
+  }
+
+  async remove(): Promise<void> {
+    await this.reference.remove();
+  }
+
+  async push<T = unknown>(value?: T): Promise<FiremixRealtimeReference> {
+    const pushed = this.reference.push();
+    if (value !== undefined) {
+      await pushed.set(value);
+    }
+    return this.wrap(pushed);
+  }
+
+  onValue(
+    callback: (snapshot: FiremixRealtimeSnapshot) => void,
+    errorCallback?: (error: Error) => void
+  ): () => void {
+    const listener = this.reference.on(
+      "value",
+      (snapshot) => callback(new AdminRealtimeSnapshot(snapshot)),
+      errorCallback
+    );
+    return () => {
+      this.reference.off("value", listener);
+    };
+  }
+
+  toFirebase(): AdminDatabaseReference {
+    return this.reference;
+  }
+}
+
+class AdminRealtimeDatabaseAdapter implements FiremixRealtimeDatabase {
+  constructor(private readonly db: AdminRealtimeDatabase) {}
+
+  ref(path?: string): FiremixRealtimeReference {
+    return path
+      ? new AdminRealtimeReferenceAdapter(this.db.ref(path))
+      : new AdminRealtimeReferenceAdapter(this.db.ref());
+  }
+
+  refFromURL(url: string): FiremixRealtimeReference {
+    return new AdminRealtimeReferenceAdapter(this.db.refFromURL(url));
+  }
+
+  goOffline(): void {
+    this.db.goOffline();
+  }
+
+  goOnline(): void {
+    this.db.goOnline();
+  }
+
+  toFirebase(): AdminRealtimeDatabase {
+    return this.db;
+  }
+}
+
+let cachedAdminRealtime: AdminRealtimeDatabaseAdapter | null = null;
+
 export class FiremixAdmin extends Firemix {
   watch<T extends DocumentData>(): Observable<Nullable<FiremixResult<T>>> {
     throw new Error("Method not implemented.");
@@ -243,6 +386,15 @@ export class FiremixAdmin extends Firemix {
 
   batch(): FiremixBatch {
     return new AdminBatch(getAdminFirestore().batch());
+  }
+
+  realtime(): FiremixRealtimeDatabase {
+    if (!cachedAdminRealtime) {
+      cachedAdminRealtime = new AdminRealtimeDatabaseAdapter(
+        getAdminRealtimeDatabase()
+      );
+    }
+    return cachedAdminRealtime;
   }
 
   async set<T extends DocumentData>(

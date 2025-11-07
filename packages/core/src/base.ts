@@ -36,6 +36,46 @@ export type FiremixQuery =
 
 export type FiremixCount = { total: number };
 
+export type FiremixRealtimeUnsubscribe = () => void;
+
+export interface FiremixRealtimeSnapshot<T = unknown> {
+  key: string | null;
+  child(path: string): FiremixRealtimeSnapshot;
+  exists(): boolean;
+  val(): T;
+  forEach(
+    action: (snapshot: FiremixRealtimeSnapshot) => boolean | void
+  ): boolean;
+  toFirebase(): unknown;
+}
+
+export interface FiremixRealtimeReference {
+  readonly key: string | null;
+  readonly parent: FiremixRealtimeReference | null;
+  readonly root: FiremixRealtimeReference;
+  child(path: string): FiremixRealtimeReference;
+  get<T = unknown>(): Promise<FiremixRealtimeSnapshot<T>>;
+  set<T = unknown>(value: T): Promise<void>;
+  update<T extends Record<string, unknown>>(
+    value: T
+  ): Promise<void>;
+  remove(): Promise<void>;
+  push<T = unknown>(value?: T): Promise<FiremixRealtimeReference>;
+  onValue(
+    callback: (snapshot: FiremixRealtimeSnapshot) => void,
+    errorCallback?: (error: Error) => void
+  ): FiremixRealtimeUnsubscribe;
+  toFirebase(): unknown;
+}
+
+export interface FiremixRealtimeDatabase {
+  ref(path?: string): FiremixRealtimeReference;
+  refFromURL(url: string): FiremixRealtimeReference;
+  goOffline(): void;
+  goOnline(): void;
+  toFirebase(): unknown;
+}
+
 export const mapFiremixQuery = <C, O, L, F>(
   query: FiremixQuery,
   args: {
@@ -233,6 +273,8 @@ export abstract class Firemix {
   abstract serverTimestamp(): FiremixServerTimestamp;
 
   abstract deleteField(): FiremixDeleteField;
+
+  abstract realtime(): FiremixRealtimeDatabase;
 
   async executeBatchWrite(executors: FiremixBatchDelegate[]): Promise<void> {
     if (executors.length === 0) {
