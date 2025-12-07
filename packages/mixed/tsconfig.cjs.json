@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.cjs.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "./src",
+    "outDir": "./dist/cjs"
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../core/tsconfig.cjs.json" },
+    { "path": "../client/tsconfig.cjs.json" },
+    { "path": "../admin/tsconfig.cjs.json" }
+  ]
+}
