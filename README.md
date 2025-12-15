@@ -1,8 +1,7 @@
 # Firemix
 
 Firemix is a collection of Firebase Firestore strategy wrappers that expose a
-consistent, type-safe API across client, admin, and mixed (zone-aware)
-environments.
+consistent, type-safe API across client, admin, and mixed (zone-aware) environments.
 
 ## Packages
 
