@@ -37,11 +37,11 @@
     "@firemix/core": "^0.1.3"
   },
   "peerDependencies": {
-    "firebase": "^11.1.0",
-    "firebase-admin": "^13.0.2"
+    "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0"
   },
   "devDependencies": {
-    "firebase": "^11.1.0",
-    "firebase-admin": "^13.0.2"
+    "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0"
   }
 }

@@ -35,9 +35,9 @@
     "@firemix/core": "^0.1.3"
   },
   "peerDependencies": {
-    "firebase-admin": "^13.0.2"
+    "firebase-admin": "^13.6.0"
   },
   "devDependencies": {
-    "firebase-admin": "^13.0.2"
+    "firebase-admin": "^13.6.0"
   }
 }
