@@ -7,4 +7,4 @@ export {
   FiremixClient,
   clientFirestoreToFiremix,
 } from "@firemix/client";
-export * from "./strategy";
+export * from "./strategy.js";

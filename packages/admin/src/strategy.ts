@@ -1,4 +1,4 @@
-import { FiremixAdmin } from "./admin";
+import { FiremixAdmin } from "./admin.js";
 import { Firemix } from "@firemix/core";
 
 const adminFiremix = new FiremixAdmin();

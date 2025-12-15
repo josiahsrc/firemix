@@ -7,6 +7,7 @@ module.exports = {
 	testMatch: ["**/test/**/*.test.ts"],
 	moduleNameMapper: {
 		"^@firemix/(.*)$": "<rootDir>/packages/$1/src/index.ts",
+		"^(\\.{1,2}/.*)\\.js$": "$1",
 	},
 	transform: {
 		"^.+\\.(t|j)sx?$": ["ts-jest", { tsconfig: "tsconfig.typecheck.json" }],

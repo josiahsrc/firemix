@@ -1,3 +1,3 @@
 export * from "@firemix/core";
-export * from "./admin";
-export * from "./strategy";
+export * from "./admin.js";
+export * from "./strategy.js";

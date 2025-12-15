@@ -1,5 +1,5 @@
 import { Firemix } from "@firemix/core";
-import { FiremixClient } from "./client";
+import { FiremixClient } from "./client.js";
 
 const clientFiremix = new FiremixClient();
 

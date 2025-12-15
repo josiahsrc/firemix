@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { map, Observable } from "rxjs";
-import { chunkify, type Nullable } from "./utils";
+import { chunkify, type Nullable } from "./utils.js";
 
 export type DocumentData = { [key: string]: any };
 
