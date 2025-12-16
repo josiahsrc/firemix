@@ -8,7 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b . && tsc -b tsconfig.cjs.build.json",
+    "build": "tsc -b . && tsc -b tsconfig.cjs.build.json && npm run build:module-markers",
+    "build:module-markers": "for pkg in packages/*/; do echo '{\"type\":\"module\"}' > \"$pkg/dist/esm/package.json\" && echo '{\"type\":\"commonjs\"}' > \"$pkg/dist/cjs/package.json\"; done",
     "type-check": "tsc -p tsconfig.typecheck.json",
     "clean": "tsc -b . --clean && tsc -b tsconfig.cjs.build.json --clean",
     "test": "jest",
