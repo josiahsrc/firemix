@@ -114,7 +114,7 @@ jobs:
           fi
 
       - name: Build packages
-        run: npm run build --workspaces --if-present
+        run: npm run build
 
       - name: Publish packages
         env:
