@@ -1,6 +1,6 @@
 {
   "name": "@firemix/admin",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Firemix SDK targeting Firebase Admin usage.",
   "publishConfig": {
     "access": "public"
