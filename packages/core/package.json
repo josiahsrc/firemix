@@ -6,6 +6,7 @@
     "access": "public"
   },
   "license": "ISC",
+  "type": "commonjs",
   "sideEffects": false,
   "exports": {
     ".": {
