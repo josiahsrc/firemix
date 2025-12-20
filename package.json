@@ -8,10 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b . && tsc -b tsconfig.cjs.build.json && npm run build:module-markers",
-    "build:module-markers": "for pkg in packages/*/; do echo '{\"type\":\"module\"}' > \"$pkg/dist/esm/package.json\" && echo '{\"type\":\"commonjs\"}' > \"$pkg/dist/cjs/package.json\"; done",
+    "build": "npm run build -w @firemix/core && npm run build -w @firemix/client -w @firemix/admin && npm run build -w @firemix/mixed",
     "type-check": "tsc -p tsconfig.typecheck.json",
-    "clean": "tsc -b . --clean && tsc -b tsconfig.cjs.build.json --clean",
+    "clean": "npm run clean --workspaces",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint .",
@@ -33,6 +32,7 @@
     "jest": "^29.7.0",
     "prettier": "2.8.8",
     "ts-jest": "^29.1.2",
+    "tsup": "^8.5.1",
     "typescript": "^5.8.3"
   }
 }

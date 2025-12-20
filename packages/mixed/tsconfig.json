@@ -1,14 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
     "rootDir": "./src",
-    "outDir": "./dist/esm"
+    "outDir": "./dist"
   },
-  "include": ["src/**/*"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../client" },
-    { "path": "../admin" }
-  ]
+  "include": ["src/**/*"]
 }

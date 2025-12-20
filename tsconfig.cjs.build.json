@@ -1,9 +1,0 @@
-{
-  "files": [],
-  "references": [
-    { "path": "./packages/core/tsconfig.cjs.json" },
-    { "path": "./packages/client/tsconfig.cjs.json" },
-    { "path": "./packages/admin/tsconfig.cjs.json" },
-    { "path": "./packages/mixed/tsconfig.cjs.json" }
-  ]
-}
