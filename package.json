@@ -1,6 +1,6 @@
 {
   "name": "firemix",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "private": true,
   "description": "Monorepo for Firemix Firebase strategy packages.",
   "license": "ISC",
